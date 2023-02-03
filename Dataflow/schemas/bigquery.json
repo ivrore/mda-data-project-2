@@ -1,0 +1,24 @@
+{
+    "fields": [
+    {
+      "mode": "NULLABLE",
+      "name": "rfid_id",
+      "type": "STRING"
+    },
+    {
+      "mode": "NULLABLE",
+      "name": "timeStamp",
+      "type": "STRING"
+    },
+    {
+      "mode": "NULLABLE",
+      "name": "processingTime",
+      "type": "STRING"
+    },
+    {
+      "mode": "NULLABLE",
+      "name": "Temperature",
+      "type": "FLOAT"
+    }
+    ]
+}

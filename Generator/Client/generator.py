@@ -1,23 +1,18 @@
-
 #Import libraries
 import json
 import time
-import uuid
 import random
 import logging
 import argparse
 import google.auth
-from faker import Faker
-from datetime import datetime,timedelta
 from google.cloud import pubsub_v1
 
 credentials, project = google.auth.default()
 
-fake = Faker()
 rand = random.random()
 
 #Input arguments
-parser = argparse.ArgumentParser(description=('Arguments for Dataflow pipeline.'))
+parser = argparse.ArgumentParser(description=('Temperature Dataflow pipeline.'))
 parser.add_argument(
                 '--project_id',
                 required=True,
@@ -41,51 +36,44 @@ class PubSubMessages:
         json_str = json.dumps(message)
         topic_path = self.publisher.topic_path(self.project_id, self.topic_name)
         publish_future = self.publisher.publish(topic_path, json_str.encode("utf-8"))
-        logging.info("New data has been registered for %s", message['Product_Id'])
+        logging.info("Nueva temperatura registrada. Temperatura: %s", message['Temperatura'])
 
     def __exit__(self):
         self.publisher.transport.close()
-        logging.info("PubSub Client closed.")
+        logging.info("PubSub Iot closed.")
+
+
+#Código a generar           
+def temperaturaRandom():
+    probabilidad= random.random()
+    if probabilidad <= 0.05:
+        return random.uniform(0,1) or random.uniform(5,6)
+    else:
+        return random.uniform(2,4)
+
+
+def product1():
+    rfid_id = "5Fh8U"
+    product_name = "Pollo"
+    Temperatura_min = int(1)
+    Temperatura_max = int(5)
+    Temperatura = round(temperaturaRandom(),2)
             
-
-#Generator Code
-def generate_data():
-    #product_id = random.choice(['pF8z9GBG', 'XsEOhUOT', '89x5FhyA', 'S3yG1alL', '5pz386iG'])
-    #client_name = fake.name()
-    #transaction_id = str(uuid.uuid4())
-    #transaction_tmp = str(datetime.now())
-    product_id = str(uuid.uuid4())
-    product_name = random.choice(['yogur', 'leche','mantequilla', 'natillas', 'flan'])
-    timestamp = str(datetime.now())
-    #transaction_amount = fake.random_number(digits=5)
-    max_temp = random.randint(7,9)
-    min_temp = random.randint(2,4)
-    opt_temp = random.randint(5,6)
-    last_date = str(datetime.now() + timedelta(days=(random.randint(10,15))))
-    #frequent_client = random.choice([True, False])
-    #payment_method = "credit_card"
-    #credit_card_number = fake.credit_card_number() if payment_method == "credit_card" else None 
-    #email = fake.email() if frequent_client == True else None
-
-    #Return values
     return {
         "Name": product_name,
-        "Product_Id": product_id,
-        "Max_Temp": max_temp,
-        "Min_Temp": min_temp,
-        "Opt_Temp": opt_temp,
-        "Timestamp": timestamp,
-        "Last_date": last_date,
-        #"Is_Registered": frequent_client,
-        #"Email": email,
-        }
+        "Rfid_id": rfid_id,
+        "Temperatura_minima": Temperatura_min,
+        "Temperatura_maxima": Temperatura_max,
+        "Temperatura": Temperatura
+    }
 
-def run_generator(project_id, topic_name):
+ 
+def run_generator(project_id,topic_name):
     pubsub_class = PubSubMessages(project_id, topic_name)
     #Publish message into the queue every 5 seconds
     try:
         while True:
-            message: dict = generate_data()
+            message: dict = product1()
             pubsub_class.publishMessages(message)
             #it will be generated a transaction each 2 seconds
             time.sleep(5)
@@ -97,3 +85,5 @@ def run_generator(project_id, topic_name):
 if __name__ == "__main__":
     logging.getLogger().setLevel(logging.INFO)
     run_generator(args.project_id, args.topic_name)
+
+
