@@ -54,9 +54,10 @@ def temperaturaRandom():
 
 def product1():
     rfid_id = "5Fh8U"
-    product_name = "Pollo"
+    product_name = "cerdo"
+    id_producto = "1"
     Temperatura_min = int(1)
-    Temperatura_max = int(5)
+    Temperatura_max = int(3)
     Temperatura = round(temperaturaRandom(),2)
             
     return {
