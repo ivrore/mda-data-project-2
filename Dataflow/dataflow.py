@@ -14,6 +14,10 @@ from datetime import datetime
 import argparse
 import json
 import logging
+import requests
+    
+
+
 
 # Decode pub/sub message from topic
 
@@ -34,6 +38,49 @@ class AddTimestampDoFn(beam.DoFn):
         element['processing_time'] = str(datetime.now())
         #return function
         yield element
+
+# Function to check if product temperature is optimal
+
+class CheckTemperatureStatusDoFn(beam.DoFn):
+    """ Call provider API to extract data from its own DB """
+    #Initialize the class by setting the host and endpoint to call
+    def __init__(self, hostname):
+        self.hostname = hostname
+        self.endpoint = '/ngg9I9/p_db'
+    #Add process function
+    def process(self, element):
+        #Dealing with sensitive fields
+        '''if element['Product'] != None:
+            logging.info("Masking an Email field...")
+            #Make API Request'''
+        try:
+            api_request = requests.get(self.hostname + self.endpoint)
+            #Show the status response in the logs
+            logging.info("Request was finished with the following status: %s", api_request.status_code)
+            r = api_request.json()
+            p_id = int(element['Product_id'])-1
+            p_max = r[p_id]['max_temp']
+            p_min = r[p_id]['min_temp']
+            if element['Temp_now'] not in range(p_min,p_max):
+                element['status'] = "Warning"
+                print (element['status'])
+                logging.info(element)
+                yield element
+            else:
+                element['status'] = 'Ok'
+                logging.info(element)
+                yield element
+       #Error handle
+        except Exception as err:
+                logging.error("Error while trying to call to the API: %s", err)
+
+# DoFN: Filter
+             
+class FilterFn(beam.DoFn):
+    def process(self, element):
+        if (element['status'] == 'warning'):
+            logging.info("Warning: Rfid %s temperature is out of range. Value: %s degrees at %s",element['Rfid_id'],element['Temp_now'],datetime.now())
+            yield element
 
 # DoFn 05 : Output data formatting
 class OutputFormatDoFn(beam.DoFn):
@@ -67,7 +114,11 @@ def run():
     parser.add_argument(
                     '--output_topic',
                     required=True,
-                    help='PubSub Topic which will be the sink for notification data.')
+                    help='PubSub Topic which will have all data.')
+    parser.add_argument(
+                    '--alert_output_topic',
+                    required=True,
+                    help='PubSub Topic which will have only alert notification data.')
     parser.add_argument(
                     '--output_bigquery',
                     required=True,
@@ -116,13 +167,20 @@ def run():
             )
         )
         
-        """ Part 03:"""
+        """ Part 03: Send information to topics"""
 
         (
             data 
+                # Add temperature status
+                | "Check temperature" >> beam.ParDo(CheckTemperatureStatusDoFn())
+                # Define output format
                 | "OutputFormat" >> beam.ParDo(OutputFormatDoFn())
-                # Write notification to PubSub Topic
-                | "Send Push Notification" >> beam.io.WriteToPubSub(topic=f"projects/{args.project_id}/topics/{args.output_topic}", with_attributes=False)
+                # Write notification to admin PubSub Topic
+                | "Send Push Notification admin topic" >> beam.io.WriteToPubSub(topic=f"projects/{args.project_id}/topics/{args.output_topic}", with_attributes=False)
+                # Filter to send only if temp alert
+                | 'Filter messages' >> beam.ParDo(FilterFn())
+                # Write notification to alert PubSub Topic
+                | "Send Push Notification alert topic" >> beam.io.WriteToPubSub(topic=f"projects/{args.project_id}/topics/{args.alert_output_topic}", with_attributes=False)
         )
 
 if __name__ == '__main__':
