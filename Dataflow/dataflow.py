@@ -1,11 +1,6 @@
 #Import beam libraries
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
-from apache_beam.transforms.combiners import MeanCombineFn
-from apache_beam.transforms.combiners import CountCombineFn
-from apache_beam.transforms.core import CombineGlobally
-import apache_beam.transforms.window as window
-
 from apache_beam.io.gcp.bigquery import parse_table_schema_from_json
 from apache_beam.io.gcp import bigquery_tools
 
@@ -15,16 +10,14 @@ import argparse
 import json
 import logging
 import requests
+import numpy as np
     
-
-
-
-# Decode pub/sub message from topic
+# Decode PubSub message from topic
 
 def ParsePubSubMessage(message):
-    #Decode PubSub message in order to deal with
+    #Decode PubSub message
     pubsubmessage = message.data.decode('utf-8')
-    #Convert string decoded in json format(element by element)
+    #Convert string message to JSON format
     row = json.loads(pubsubmessage)
     #Logging
     logging.info("Receiving message from PubSub:%s", pubsubmessage)
@@ -34,37 +27,37 @@ def ParsePubSubMessage(message):
 class AddTimestampDoFn(beam.DoFn):
     
     def process(self, element):
-        #Add ProcessingTime field
+        #Add processing time to message
         element['processing_time'] = str(datetime.now())
         #return function
         yield element
 
-# Function to check if product temperature is optimal
+# Dofn beam function to check if product temperature is optimal
 
 class CheckTemperatureStatusDoFn(beam.DoFn):
-    """ Call provider API to extract data from its own DB """
+    ''' Simulate a call to supplier product database to get temperature values'''
     #Initialize the class by setting the host and endpoint to call
     def __init__(self, hostname):
         self.hostname = hostname
-        self.endpoint = '/ngg9I9/p_db'
+        self.endpoint = '/ASSRU0/p_db'
     #Add process function
     def process(self, element):
-        #Dealing with sensitive fields
-        '''if element['Product'] != None:
-            logging.info("Masking an Email field...")
-            #Make API Request'''
+
         try:
             api_request = requests.get(self.hostname + self.endpoint)
             #Show the status response in the logs
             logging.info("Request was finished with the following status: %s", api_request.status_code)
             r = api_request.json()
-            p_id = int(element['Product_id'])-1
+            # Set index of product_id in a varible for look into API
+            p_id = (element['Product_id'])-1
+            # Store in two variables max/min temp from supplier database for each product
             p_max = r[p_id]['max_temp']
             p_min = r[p_id]['min_temp']
-            if element['Temp_now'] not in range(p_min,p_max):
+            # Check if temperature is between max/min temp indicated in supplier database
+            if float(p_min) <= element['Temp_now'] <= float(p_max) : 
+                # If temperature not in range add 'warning'status
                 element['status'] = "Warning"
-                print (element['status'])
-                logging.info(element)
+                logging.info("Warning: Rfid %s temperature is out of range [%s-%s]. Value: %s degrees at %s",element['Rfid_id'],p_min,p_max,element['Temp_now'],datetime.now())
                 yield element
             else:
                 element['status'] = 'Ok'
@@ -74,27 +67,18 @@ class CheckTemperatureStatusDoFn(beam.DoFn):
         except Exception as err:
                 logging.error("Error while trying to call to the API: %s", err)
 
-# DoFN: Filter
-             
-class FilterFn(beam.DoFn):
-    def process(self, element):
-        if (element['status'] == 'warning'):
-            logging.info("Warning: Rfid %s temperature is out of range. Value: %s degrees at %s",element['Rfid_id'],element['Temp_now'],datetime.now())
-            yield element
+# Dofn beam function to format data for output
 
-# DoFn 05 : Output data formatting
 class OutputFormatDoFn(beam.DoFn):
     """ Set a specific format for the output data."""
     #Add process function
     def process(self, element):
-        #Send a notification with the best-selling product_id in each window
-        output_msg = {"ProcessingTime": str(datetime.now()), "message": f"was the best-selling product."}
         #Convert the json to the proper pubsub format
-        output_json = json.dumps(output_msg)
+        output_json = json.dumps(element)
         yield output_json.encode('utf-8')
 
 """ Dataflow Process """
-def run():
+def run_dataflow():
 
     """ Input Arguments"""
     parser = argparse.ArgumentParser(description=('Arguments for the Dataflow Streaming Pipeline.'))
@@ -105,7 +89,7 @@ def run():
                     help='GCP cloud project name')
     parser.add_argument(
                     '--hostname',
-                    required=False,
+                    required=True,
                     help='API Hostname provided during the session.')
     parser.add_argument(
                     '--input_subscription',
@@ -115,10 +99,6 @@ def run():
                     '--output_topic',
                     required=True,
                     help='PubSub Topic which will have all data.')
-    parser.add_argument(
-                    '--alert_output_topic',
-                    required=True,
-                    help='PubSub Topic which will have only alert notification data.')
     parser.add_argument(
                     '--output_bigquery',
                     required=True,
@@ -147,17 +127,19 @@ def run():
     #Pipeline
     with beam.Pipeline(argv=pipeline_opts,options=options) as p:
         
-        """ Part 01: Format data by masking the sensitive fields and checking if the transaction is fraudulent."""
+        """ Part 01: Add processing time and add temperature status """
         data = (
             p 
-                | "Read From PubSub" >> beam.io.ReadFromPubSub(topic=args.input_subscription)
+                | "Read From PubSub" >> beam.io.ReadFromPubSub(subscription=f"projects/{args.project_id}/subscriptions/{args.input_subscription}", with_attributes=True)
                 # Parse JSON messages with Map Function
                 | "Parse JSON messages" >> beam.Map(ParsePubSubMessage)
                 # Adding Processing timestamp
                 | "Add Processing Time" >> beam.ParDo(AddTimestampDoFn())
+                # Add temperature status
+                | "Check temperature" >> beam.ParDo(CheckTemperatureStatusDoFn(args.hostname))
         )
         
-        """ Part 02: Writing data to BigQuery"""
+        """ Part 02: Write before data to BigQuery """
         (
             data | "Write to BigQuery" >> beam.io.WriteToBigQuery(
                 table = f"{args.project_id}:{args.output_bigquery}",
@@ -167,24 +149,20 @@ def run():
             )
         )
         
-        """ Part 03: Send information to topics"""
+        """ Part 03: Set output and send data to admin topic"""
 
         (
             data 
-                # Add temperature status
-                | "Check temperature" >> beam.ParDo(CheckTemperatureStatusDoFn())
                 # Define output format
                 | "OutputFormat" >> beam.ParDo(OutputFormatDoFn())
                 # Write notification to admin PubSub Topic
                 | "Send Push Notification admin topic" >> beam.io.WriteToPubSub(topic=f"projects/{args.project_id}/topics/{args.output_topic}", with_attributes=False)
-                # Filter to send only if temp alert
-                | 'Filter messages' >> beam.ParDo(FilterFn())
-                # Write notification to alert PubSub Topic
-                | "Send Push Notification alert topic" >> beam.io.WriteToPubSub(topic=f"projects/{args.project_id}/topics/{args.alert_output_topic}", with_attributes=False)
-        )
+                # Decode message again
+        )       
+
 
 if __name__ == '__main__':
     #Add Logs
     logging.getLogger().setLevel(logging.INFO)
     #Run process
-    run()
+    run_dataflow()

@@ -17,20 +17,24 @@
 ---
 ## Instrucciones
 ---  
+1. Crear topics en Pub/Sub de GCP:
 
++ *Admin output* - Este topic recibe los datos del sensor rfid + status 
++ *Alert output* - Este topic es el que debemos indicar en cloud function. Solo muestra alertas de temperatura.
++ *rfid_input* - Este topic recibe toda la información del sensor rfid.
 
-1. Clonar el repositorio en la shell de GCP:
+2. Clonar el repositorio en la shell de GCP:
 ```
  git clone <REPO_NAME>
 ```
-2. Ejecutar desde la shell el generador **generador.py**
+3. Ejecutar desde la shell el generador **generador.py**
 ```
 cd /Generator/Iotsensor
 python generator.py \
     --project_id <PROJECT_ID> \
     --topic_name <INPUT_PUBSUB_TOPIC>
 ```
-3. Ejecutar desde la shell el pipeline **dataflow.py**
+4. Ejecutar desde la shell el pipeline **dataflow.py**
 ```
 python dataflow.py \
     --project_id <PROJECT_ID> \
@@ -43,3 +47,10 @@ python dataflow.py \
     --temp_location gs://<BUCKET_NAME>/tmp \
     --staging_location gs://<BUCKET_NAME>/stg
 ```
+5. Crear una **cloud function** con el código de google_cloud_function.py
+6. Asignar variables de entorno en cloud functions.
+   
+   - PROJECT_ID: Nombre del proyecto
+   - ALERT_TOPIC_OUTPUT: Nombre del topic para las alertas
+
+<img src="./img/env_cloud.png"  width="450" height="150">
