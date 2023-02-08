@@ -10,8 +10,6 @@ import google.auth
 from datetime import datetime
 from google.cloud import pubsub_v1
 
-rand = random.random()
-
 #Input arguments
 parser = argparse.ArgumentParser(description=('Arguments for Dataflow pipeline.'))
 parser.add_argument(
@@ -37,7 +35,7 @@ class PubSubMessages:
         json_str = json.dumps(message)
         topic_path = self.publisher.topic_path(self.project_id, self.topic_name)
         publish_future = self.publisher.publish(topic_path, json_str.encode("utf-8"))
-        logging.info("New data has been registered for %s rfid:", message['rfid_id'])
+        logging.info("New data has been registered for rfid: %s", message['Rfid_id'])
 
     def __exit__(self):
         self.publisher.transport.close()
@@ -46,16 +44,16 @@ class PubSubMessages:
 rfid = ['pF8z9GBG', 'XsEOhUOT', '89x5FhyA', 'S3yG1alL', '5pz386iG']
 products = ['cerdo','conejo','ternera','cordero','pollo']
 
-# Simulates a temperature with 5% possibilities to be anormal
+# Simulates a temperature with 3% possibilities to be anormal
 
 def temperaturaRandom():
-    probabilidad= random.random()
-    if probabilidad <= 0.05:
+    probability = random.random()
+    if probability <= 0.03:
         return random.uniform(0,1) or random.uniform(5,6)
     else:
         return random.uniform(2,4)
 
-# Generator Code
+# Generate rfid data
 
 def product():
 
@@ -65,7 +63,7 @@ def product():
     measurement_time = str(datetime.now())
     temp_now = round(temperaturaRandom(),2)
     
-    #Return values
+    # Return values in a dict
     return {
         "Rfid_id" : rfid_id,
         "Product_id": product_id,
@@ -76,7 +74,7 @@ def product():
 
 def run_generator(project_id, topic_name):
     pubsub_class = PubSubMessages(project_id, topic_name)
-    #Publish message into the queue every 5 seconds
+    # Publish message to topic every 5 seconds
     try:
         while True:
             message: dict = product()
@@ -92,5 +90,5 @@ def run_generator(project_id, topic_name):
 if __name__ == "__main__":
     logging.getLogger().setLevel(logging.INFO)
     #run_generator(args.project_id, args.topic_name)
-    run_generator()
+    run_generator(args.project_id, args.topic_name)
 

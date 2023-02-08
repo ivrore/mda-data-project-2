@@ -22,6 +22,11 @@
       },
       {
         "mode": "NULLABLE",
+        "name": "Status",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
         "name": "Measurement_time",
         "type": "STRING"
       },
