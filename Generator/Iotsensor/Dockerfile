@@ -7,4 +7,4 @@ COPY requirements.txt requirements.txt
 
 RUN pip install -r requirements.txt
 
-CMD [ "python", "-u", "generator.py","--project_id","e2e-serverless-edem","--topic_name","sensor_info" ]
+CMD [ "python", "-u", "generator.py","--project_id","<PROJECT_ID>","--topic_name","<TOPIC_NAME>" ]

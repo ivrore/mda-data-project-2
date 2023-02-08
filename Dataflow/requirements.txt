@@ -1,0 +1,5 @@
+apache-beam[gcp]==2.41.0
+google-cloud-bigquery
+google-cloud-pubsub
+google-cloud-storage
+google-cloud-bigquery
