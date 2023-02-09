@@ -5,7 +5,6 @@ import time
 import random
 import logging
 import argparse
-import requests
 import google.auth
 from datetime import datetime
 from google.cloud import pubsub_v1
@@ -41,25 +40,27 @@ class PubSubMessages:
         self.publisher.transport.close()
         logging.info("PubSub Client closed.")
 
-rfid = ['pF8z9GBG', 'XsEOhUOT', '89x5FhyA', 'S3yG1alL', '5pz386iG']
-products = ['cerdo','conejo','ternera','cordero','pollo']
+# Read products JSON file
 
-# Simulates a temperature with 3% possibilities to be anormal
+with open("./products.json") as file:
+        prod = json.load(file)
+
+# Simulates a temperature with 2% possibilities to be anormal
 
 def temperaturaRandom():
     probability = random.random()
-    if probability <= 0.03:
+    if probability <= 0.02:
         return random.uniform(0,1) or random.uniform(5,6)
     else:
         return random.uniform(2,4)
 
-# Generate rfid data
+# Generate diferent products from JSON
 
 def product():
 
-    rfid_id = random.choice(rfid)
-    product_id = int(rfid.index(rfid_id)+1)
-    product_name = products[product_id-1]
+    product_id = prod[random.randint(0,4)]['Product_id']
+    rfid_id = prod[int(product_id)-1]['Rfid_id']
+    product_name = prod[int(product_id)-1]['Product_name']
     measurement_time = str(datetime.now())
     temp_now = round(temperaturaRandom(),2)
     
@@ -71,6 +72,8 @@ def product():
         "Measurement_time": measurement_time,
         "Temp_now": temp_now
         }
+
+# Generate rfid data
 
 def run_generator(project_id, topic_name):
     pubsub_class = PubSubMessages(project_id, topic_name)
@@ -86,9 +89,7 @@ def run_generator(project_id, topic_name):
     finally:
         pubsub_class.__exit__()
 
-
 if __name__ == "__main__":
     logging.getLogger().setLevel(logging.INFO)
-    #run_generator(args.project_id, args.topic_name)
     run_generator(args.project_id, args.topic_name)
 

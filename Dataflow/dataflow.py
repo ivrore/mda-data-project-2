@@ -39,7 +39,7 @@ class CheckTemperatureStatusDoFn(beam.DoFn):
     #Initialize the class by setting the host and endpoint to call
     def __init__(self, hostname):
         self.hostname = hostname
-        self.endpoint = '/ASSRU0/p_db'
+        self.endpoint = '/wGBM56/p_db'
     #Add process function
     def process(self, element):
 
