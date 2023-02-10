@@ -5,12 +5,9 @@ import time
 import random
 import logging
 import argparse
-import requests
 import google.auth
 from datetime import datetime
 from google.cloud import pubsub_v1
-
-rand = random.random()
 
 #Input arguments
 parser = argparse.ArgumentParser(description=('Arguments for Dataflow pipeline.'))
@@ -37,35 +34,37 @@ class PubSubMessages:
         json_str = json.dumps(message)
         topic_path = self.publisher.topic_path(self.project_id, self.topic_name)
         publish_future = self.publisher.publish(topic_path, json_str.encode("utf-8"))
-        logging.info("New data has been registered for %s rfid:", message['rfid_id'])
+        logging.info("New data has been registered for rfid: %s", message['Rfid_id'])
 
     def __exit__(self):
         self.publisher.transport.close()
         logging.info("PubSub Client closed.")
 
-rfid = ['pF8z9GBG', 'XsEOhUOT', '89x5FhyA', 'S3yG1alL', '5pz386iG']
-products = ['cerdo','conejo','ternera','cordero','pollo']
+# Read products JSON file
 
-# Simulates a temperature with 5% possibilities to be anormal
+with open("./products.json") as file:
+        prod = json.load(file)
+
+# Simulates a temperature with 2% possibilities to be anormal
 
 def temperaturaRandom():
-    probabilidad= random.random()
-    if probabilidad <= 0.05:
+    probability = random.random()
+    if probability <= 0.02:
         return random.uniform(0,1) or random.uniform(5,6)
     else:
         return random.uniform(2,4)
 
-# Generator Code
+# Generate diferent products from JSON
 
 def product():
 
-    rfid_id = random.choice(rfid)
-    product_id = int(rfid.index(rfid_id)+1)
-    product_name = products[product_id-1]
+    product_id = prod[random.randint(0,4)]['Product_id']
+    rfid_id = prod[int(product_id)-1]['Rfid_id']
+    product_name = prod[int(product_id)-1]['Product_name']
     measurement_time = str(datetime.now())
     temp_now = round(temperaturaRandom(),2)
     
-    #Return values
+    # Return values in a dict
     return {
         "Rfid_id" : rfid_id,
         "Product_id": product_id,
@@ -74,9 +73,11 @@ def product():
         "Temp_now": temp_now
         }
 
+# Generate rfid data
+
 def run_generator(project_id, topic_name):
     pubsub_class = PubSubMessages(project_id, topic_name)
-    #Publish message into the queue every 5 seconds
+    # Publish message to topic every 5 seconds
     try:
         while True:
             message: dict = product()
@@ -88,9 +89,7 @@ def run_generator(project_id, topic_name):
     finally:
         pubsub_class.__exit__()
 
-
 if __name__ == "__main__":
     logging.getLogger().setLevel(logging.INFO)
-    #run_generator(args.project_id, args.topic_name)
-    run_generator()
+    run_generator(args.project_id, args.topic_name)
 
