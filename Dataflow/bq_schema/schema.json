@@ -1,39 +1,49 @@
 {
-    "fields":[
-      {
-        "mode": "NULLABLE",
-        "name": "Product_id",
-        "type": "INTEGER"
-      },
-      {
-        "mode": "NULLABLE",
-        "name": "Rfid_id",
-        "type": "STRING"
-      },
-      {
-        "mode": "NULLABLE",
-        "name": "Name",
-        "type": "STRING"
-      },
-      {
-        "mode": "NULLABLE",
-        "name": "Temp_now",
-        "type": "FLOAT"
-      },
-      {
-        "mode": "NULLABLE",
-        "name": "Status",
-        "type": "STRING"
-      },
-      {
-        "mode": "NULLABLE",
-        "name": "Measurement_time",
-        "type": "STRING"
-      },
-      {
-        "mode": "NULLABLE",
-        "name": "Processing_time",
-        "type": "STRING"
-      }
-    ]
+  "fields":[
+    {
+      "mode": "NULLABLE",
+      "name": "Product_id",
+      "type": "INTEGER"
+    },
+    {
+      "mode": "NULLABLE",
+      "name": "Rfid_id",
+      "type": "STRING"
+    },
+    {
+      "mode": "NULLABLE",
+      "name": "Name",
+      "type": "STRING"
+    },
+    {
+      "mode": "NULLABLE",
+      "name": "Temp_now",
+      "type": "FLOAT"
+    },
+    {
+      "mode": "NULLABLE",
+      "name": "Status",
+      "type": "STRING"
+    },
+    {
+      "mode": "NULLABLE",
+      "name": "Measurement_time",
+      "type": "STRING"
+    },
+    {
+      "mode": "NULLABLE",
+      "name": "Processing_time",
+      "type": "STRING"
+    },
+    {
+      "mode": "NULLABLE",
+      "name": "Latitude",
+      "type": "STRING"
+    },
+    {
+      "mode": "NULLABLE",
+      "name": "Longitude",
+      "type": "STRING"
+    }
+  ]
 }
