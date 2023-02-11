@@ -6,6 +6,8 @@ from apache_beam.io.gcp import bigquery_tools
 
 #Import Common Libraries
 from datetime import datetime
+from gps_simulator.vehicles import get_points_along_path
+from collections import OrderedDict
 import argparse
 import json
 import logging
@@ -42,7 +44,12 @@ class CheckTemperatureStatusDoFn(beam.DoFn):
         self.endpoint = '/wGBM56/p_db'
     #Add process function
     def process(self, element):
-
+    #Call the Google Maps Api to get a track from one point to another point
+        track = get_points_along_path("AIzaSyAG6wLA6wPXdtEGnvvUaiBM1WLsmHhEwv4","Madrid, Madrid", "Valencia, Comunidad Valenciana")
+        ordered_dict = OrderedDict(track)
+    # Convert the OrderedtDict into a dict list
+        location = [{"key": k, "latitude": v[0], "longitude": v[1]} for k, v in ordered_dict.items()]
+        count = 0
         try:
             api_request = requests.get(self.hostname + self.endpoint)
             #Show the status response in the logs
@@ -53,14 +60,20 @@ class CheckTemperatureStatusDoFn(beam.DoFn):
             # Store in two variables max/min temp from supplier database for each product
             p_max = r[p_id]['max_temp']
             p_min = r[p_id]['min_temp']
+            latitude = location[count]["latitude"]
+            longitude = location[count]["longitude"]
             # Check if temperature is between max/min temp indicated in supplier database
             if float(p_min) <= element['Temp_now'] <= float(p_max) : 
                 # If temperature not in range add 'warning'status
                 element['status'] = "Warning"
-                logging.info("Warning: Rfid %s temperature is out of range [%s-%s]. Value: %s degrees at %s",element['Rfid_id'],p_min,p_max,element['Temp_now'],datetime.now())
+                count =+ 5
+                logging.info("Warning: Rfid %s temperature is out of range [%s-%s]. Value: %s degrees at %s",element['Rfid_id'],p_min,p_max,element['Temp_now'],datetime.now(),latitude,longitude)
                 yield element
             else:
                 element['status'] = 'Ok'
+                element['Latitude'] = latitude
+                element['Longitude'] = longitude
+                count =+ 5
                 logging.info(element)
                 yield element
        #Error handle

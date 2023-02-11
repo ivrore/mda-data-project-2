@@ -63,6 +63,8 @@ def product():
     product_name = prod[int(product_id)-1]['Product_name']
     measurement_time = str(datetime.now())
     temp_now = round(temperaturaRandom(),2)
+    latitude = ""
+    longitude = ""
     
     # Return values in a dict
     return {
@@ -70,7 +72,9 @@ def product():
         "Product_id": product_id,
         "Name": product_name,
         "Measurement_time": measurement_time,
-        "Temp_now": temp_now
+        "Temp_now": temp_now,
+        "Latitude": latitude,
+        "Longitude": longitude
         }
 
 # Generate rfid data
