@@ -12,7 +12,8 @@ import logging
 import requests
 import numpy as np
     
-# Decode PubSub message from topic
+# Decode PubSub message from topic 
+
 
 def ParsePubSubMessage(message):
     #Decode PubSub message
@@ -49,7 +50,7 @@ class CheckTemperatureStatusDoFn(beam.DoFn):
             logging.info("Request was finished with the following status: %s", api_request.status_code)
             r = api_request.json()
             # Set index of product_id in a varible for look into API
-            p_id = (element['Product_id'])-1
+            p_id = int(element['Product_id'])-1
             # Store in two variables max/min temp from supplier database for each product
             p_max = r[p_id]['max_temp']
             p_min = r[p_id]['min_temp']

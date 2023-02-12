@@ -34,6 +34,18 @@
         "mode": "NULLABLE",
         "name": "Processing_time",
         "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "Trip_time",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "Location",
+        "type": "STRING"
       }
+
+
     ]
 }

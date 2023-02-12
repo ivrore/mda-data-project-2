@@ -63,7 +63,7 @@ Add the following environment variables:
 ```
 2. Run **generator.py** script in GCP shell:
 ```
-cd /Generator/Iotsensor
+cd Generator/Iotsensor
 python generator.py \
     --project_id <PROJECT_ID> \
     --topic_name <INPUT_PUBSUB_TOPIC>

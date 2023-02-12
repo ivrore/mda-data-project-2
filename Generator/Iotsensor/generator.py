@@ -5,6 +5,8 @@ import time
 import random
 import logging
 import argparse
+import time
+from datetime import datetime, timedelta
 import google.auth
 from datetime import datetime
 from google.cloud import pubsub_v1
@@ -54,6 +56,47 @@ def temperaturaRandom():
     else:
         return random.uniform(2,4)
 
+# Simulates a location by a set of coordinates with 3 seconds difference from each 
+
+def route_time(start_time):
+    
+    with open ("./gps/route.json") as file:
+        coordinates = json.load(file)
+    # New list adding trip timestamp
+    coordinates_list = []
+
+    for item in coordinates:
+        # Set the starting time as actual time for the first coordinate
+        if coordinates_list == []:
+            dict = {"coordinate":item,"timestamp":str(start_time)}
+            coordinates_list.append(dict)
+        else:
+        # Add +3 seconds for each coordinate as simulated location movement
+            up_time = timedelta(seconds=3)
+            start_time += up_time
+            dict = {"coordinate":item,"timestamp":str(start_time)}
+            coordinates_list.append(dict)
+    # Save list in a JSON with trip timestamp
+    jsonString = json.dumps(coordinates_list)
+    jsonFile = open("./gps/location.json", "w")
+    jsonFile.write(jsonString)
+    jsonFile.close()
+    return coordinates_list
+
+# Function to simulate current location based on location timestamp
+
+def current_location(message,coordinates_list):
+   
+    coordinates_list = route_time(start_time)
+    current_timestamp = str(datetime.now())
+    # Iterates over coordinates list looking for the coordinate according to the next timestamp
+    for element in coordinates_list:
+        
+        if str(element["timestamp"]) > message['Measurement_time']:
+            message['Location'] = element["coordinate"]
+            print(f'At timestamp {element["timestamp"]}, the location is {element["coordinate"]}')
+            return message
+    
 # Generate diferent products from JSON
 
 def product():
@@ -63,6 +106,8 @@ def product():
     product_name = prod[int(product_id)-1]['Product_name']
     measurement_time = str(datetime.now())
     temp_now = round(temperaturaRandom(),2)
+    trip_time = str(start_time)
+    location = ""
     
     # Return values in a dict
     return {
@@ -70,18 +115,23 @@ def product():
         "Product_id": product_id,
         "Name": product_name,
         "Measurement_time": measurement_time,
-        "Temp_now": temp_now
+        "Temp_now": temp_now,
+        "Trip_time": trip_time,
+        "Location" : location
         }
 
 # Generate rfid data
 
 def run_generator(project_id, topic_name):
     pubsub_class = PubSubMessages(project_id, topic_name)
+    coordinates_list = route_time(start_time)
     # Publish message to topic every 5 seconds
     try:
         while True:
             message: dict = product()
+            current_location(message,coordinates_list)
             pubsub_class.publishMessages(message)
+            print (message)
             #it will be generated a transaction each 2 seconds
             time.sleep(5)
     except Exception as err:
@@ -91,5 +141,7 @@ def run_generator(project_id, topic_name):
 
 if __name__ == "__main__":
     logging.getLogger().setLevel(logging.INFO)
+    start_time = datetime.now()
+    route_time(start_time)
     run_generator(args.project_id, args.topic_name)
 
