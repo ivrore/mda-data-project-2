@@ -47,11 +47,11 @@ class PubSubMessages:
 with open("./products.json") as file:
         prod = json.load(file)
 
-# Simulates a temperature with 2% possibilities to be anormal
+# Simulates a temperature with 3% possibilities to be anormal
 
 def temperaturaRandom():
     probability = random.random()
-    if probability <= 0.02:
+    if probability <= 0.03:
         return random.uniform(0,1) or random.uniform(5,6)
     else:
         return random.uniform(2,4)
@@ -92,9 +92,8 @@ def current_location(message,coordinates_list):
     # Iterates over coordinates list looking for the coordinate according to the next timestamp
     for element in coordinates_list:
         
-        if str(element["timestamp"]) > message['Measurement_time']:
+        if str(element["timestamp"]) > current_timestamp: #message['Measurement_time']:
             message['Location'] = element["coordinate"]
-            print(f'At timestamp {element["timestamp"]}, the location is {element["coordinate"]}')
             return message
     
 # Generate diferent products from JSON

@@ -49,21 +49,26 @@ class CheckTemperatureStatusDoFn(beam.DoFn):
             #Show the status response in the logs
             logging.info("Request was finished with the following status: %s", api_request.status_code)
             r = api_request.json()
+
             # Set index of product_id in a varible for look into API
             p_id = int(element['Product_id'])-1
+
             # Store in two variables max/min temp from supplier database for each product
             p_max = r[p_id]['max_temp']
             p_min = r[p_id]['min_temp']
+
             # Check if temperature is between max/min temp indicated in supplier database
             if float(p_min) <= element['Temp_now'] <= float(p_max) : 
-                # If temperature not in range add 'warning'status
-                element['status'] = "Warning"
-                logging.info("Warning: Rfid %s temperature is out of range [%s-%s]. Value: %s degrees at %s",element['Rfid_id'],p_min,p_max,element['Temp_now'],datetime.now())
-                yield element
-            else:
+                # If temperature is in range add 'Ok'status
                 element['status'] = 'Ok'
                 logging.info(element)
                 yield element
+            else:
+                # If temperature is not in range add 'Warning'status
+                element['status'] = "Warning"
+                logging.info("Warning: Rfid %s temperature is out of range [%s-%s]. Value: %s degrees at %s",element['Rfid_id'],p_min,p_max,element['Temp_now'],datetime.now())
+                yield element
+                  
        #Error handle
         except Exception as err:
                 logging.error("Error while trying to call to the API: %s", err)
