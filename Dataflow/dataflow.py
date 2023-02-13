@@ -45,7 +45,7 @@ class CheckTemperatureStatusDoFn(beam.DoFn):
     #Add process function
     def process(self, element):
     #Call the Google Maps Api to get a track from one point to another point
-        track = get_points_along_path("AIzaSyAG6wLA6wPXdtEGnvvUaiBM1WLsmHhEwv4","Madrid, Madrid", "Valencia, Comunidad Valenciana")
+        track = get_points_along_path("","Madrid, Madrid", "Valencia, Comunidad Valenciana")
         ordered_dict = OrderedDict(track)
     # Convert the OrderedtDict into a dict list
         location = [{"key": k, "latitude": v[0], "longitude": v[1]} for k, v in ordered_dict.items()]
