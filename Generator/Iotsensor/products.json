@@ -1,27 +1,27 @@
 [
     {
       "Rfid_id":"pF8z9GBG",
-      "Product_id": "1",
+      "Product_id": 1,
       "Product_name": "cerdo"
     },
     {
       "Rfid_id":"XsEOhUOT",
-      "Product_id": "2",
+      "Product_id": 2,
       "Product_name": "conejo"
     },
     {
       "Rfid_id":"89x5FhyA",
-      "Product_id": "3",
+      "Product_id": 3,
       "Product_name": "ternera"
     },
     {
       "Rfid_id":"S3yG1alL",
-      "Product_id": "4",
+      "Product_id": 4,
       "Product_name": "cordero"
     },
     {
       "Rfid_id":"5pz386iG",
-      "Product_id": "5",
+      "Product_id": 5,
       "Product_name": "pollo"
     }
   ]

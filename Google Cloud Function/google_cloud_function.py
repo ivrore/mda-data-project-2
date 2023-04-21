@@ -24,7 +24,6 @@ def writeToAlertTopic(event, context):
       output_json = json.dumps(msg).encode('utf-8')
       # Send message to alert topic
       publisher.publish(topic_path,output_json)
-      return
      
    
 
