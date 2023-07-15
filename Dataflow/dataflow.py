@@ -6,14 +6,15 @@ from apache_beam.io.gcp import bigquery_tools
 
 #Import Common Libraries
 from datetime import datetime
+from gps_simulator.vehicles import get_points_along_path
+from collections import OrderedDict
 import argparse
 import json
 import logging
 import requests
 import numpy as np
     
-# Decode PubSub message from topic 
-
+# Decode PubSub message from topic
 
 def ParsePubSubMessage(message):
     #Decode PubSub message
@@ -43,32 +44,38 @@ class CheckTemperatureStatusDoFn(beam.DoFn):
         self.endpoint = '/wGBM56/p_db'
     #Add process function
     def process(self, element):
-
+    #Call the Google Maps Api to get a track from one point to another point
+        track = get_points_along_path("","Madrid, Madrid", "Valencia, Comunidad Valenciana")
+        ordered_dict = OrderedDict(track)
+    # Convert the OrderedtDict into a dict list
+        location = [{"key": k, "latitude": v[0], "longitude": v[1]} for k, v in ordered_dict.items()]
+        count = 0
         try:
             api_request = requests.get(self.hostname + self.endpoint)
             #Show the status response in the logs
             logging.info("Request was finished with the following status: %s", api_request.status_code)
             r = api_request.json()
-
             # Set index of product_id in a varible for look into API
-            p_id = int(element['Product_id'])-1
-
+            p_id = (int(element['Product_id']))-1
             # Store in two variables max/min temp from supplier database for each product
             p_max = r[p_id]['max_temp']
             p_min = r[p_id]['min_temp']
-
+            latitude = location[count]["latitude"]
+            longitude = location[count]["longitude"]
             # Check if temperature is between max/min temp indicated in supplier database
             if float(p_min) <= element['Temp_now'] <= float(p_max) : 
-                # If temperature is in range add 'Ok'status
-                element['status'] = 'Ok'
-                logging.info(element)
+                # If temperature not in range add 'warning'status
+                element['status'] = "Warning"
+                count =+ 5
+                logging.info("Warning: Rfid %s temperature is out of range [%s-%s]. Value: %s degrees at %s",element['Rfid_id'],p_min,p_max,element['Temp_now'],datetime.now(),latitude,longitude)
                 yield element
             else:
-                # If temperature is not in range add 'Warning'status
-                element['status'] = "Warning"
-                logging.info("Warning: Rfid %s temperature is out of range [%s-%s]. Value: %s degrees at %s",element['Rfid_id'],p_min,p_max,element['Temp_now'],datetime.now())
+                element['status'] = 'Ok'
+                element['Latitude'] = latitude
+                element['Longitude'] = longitude
+                count =+ 5
+                logging.info(element)
                 yield element
-                  
        #Error handle
         except Exception as err:
                 logging.error("Error while trying to call to the API: %s", err)
